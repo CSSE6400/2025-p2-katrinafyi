@@ -37,16 +37,37 @@ def get_todo(todo_id):
 
 @api.route('/todos', methods=['POST'])
 def create_todo():
-    """Create a new todo item and return the created item"""
-    return jsonify(TEST_ITEM), 201
+    todo = Todo(
+        title=request.json.get('title'),
+        description=request.json.get('description'),
+        completed=request.json.get('completed', False),
+    )
+    if 'deadline_at' in request.json:
+        todo.deadline_at = datetime.fromisoformat(request.json.get('deadline_at'))
+    # Adds a new record to the database or will update an existing record.
+    db.session.add(todo)
+    # Commits the changes to the database.
+    # This must be called for the changes to be saved.
+    db.session.commit()
+    return jsonify(todo.to_dict()), 201
 
 @api.route('/todos/<int:todo_id>', methods=['PUT'])
 def update_todo(todo_id):
-    """Update a todo item and return the updated item"""
-    return jsonify(TEST_ITEM)
+    todo = Todo.query.get(todo_id)
+    if todo is None:
+        return jsonify({'error': 'Todo not found'}), 404
+    todo.title = request.json.get('title', todo.title)
+    todo.description = request.json.get('description', todo.description)
+    todo.completed = request.json.get('completed', todo.completed)
+    todo.deadline_at = request.json.get('deadline_at', todo.deadline_at)
+    db.session.commit()
+    return jsonify(todo.to_dict())
 
 @api.route('/todos/<int:todo_id>', methods=['DELETE'])
 def delete_todo(todo_id):
-    """Delete a todo item and return the deleted item"""
-    return jsonify(TEST_ITEM)
-
+    todo = Todo.query.get(todo_id)
+    if todo is None:
+        return jsonify({}), 200
+    db.session.delete(todo)
+    db.session.commit()
+    return jsonify(todo.to_dict()), 200
