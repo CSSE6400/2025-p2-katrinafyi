@@ -1,6 +1,9 @@
-from flask import Blueprint, jsonify
- 
-api = Blueprint('api', __name__, url_prefix='/api/v1') 
+from flask import Blueprint, jsonify, request
+from todo.models import db
+from todo.models.todo import Todo
+from datetime import datetime
+
+api = Blueprint('api', __name__, url_prefix='/api/v1')
 
 TEST_ITEM = {
     "id": 1,
@@ -11,22 +14,26 @@ TEST_ITEM = {
     "created_at": "2023-02-20T00:00:00",
     "updated_at": "2023-02-20T00:00:00"
 }
- 
-@api.route('/health') 
+
+@api.route('/health')
 def health():
     """Return a status of 'ok' if the server is running and listening to request"""
     return jsonify({"status": "ok"})
 
-
 @api.route('/todos', methods=['GET'])
 def get_todos():
-    """Return the list of todo items"""
-    return jsonify([TEST_ITEM])
+    todos = Todo.query.all()
+    result = []
+    for todo in todos:
+        result.append(todo.to_dict())
+    return jsonify(result)
 
 @api.route('/todos/<int:todo_id>', methods=['GET'])
 def get_todo(todo_id):
-    """Return the details of a todo item"""
-    return jsonify(TEST_ITEM)
+    todo = Todo.query.get(todo_id)
+    if todo is None:
+        return jsonify({'error': 'Todo not found'}), 404
+    return jsonify(todo.to_dict())
 
 @api.route('/todos', methods=['POST'])
 def create_todo():
@@ -42,4 +49,4 @@ def update_todo(todo_id):
 def delete_todo(todo_id):
     """Delete a todo item and return the deleted item"""
     return jsonify(TEST_ITEM)
- 
+
